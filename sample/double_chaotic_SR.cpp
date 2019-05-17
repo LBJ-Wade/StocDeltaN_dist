@@ -66,8 +66,8 @@ int main(int argc, char** argv)
 
   StocDeltaN sdn(MODEL,sitepack,xpi,0,params);
 
-  //sdn.sample();
-  sdn.sample_plot();
+  sdn.sample();
+  //sdn.sample_plot();
 
   //sdn.solve();
   //sdn.f_plot(0);
