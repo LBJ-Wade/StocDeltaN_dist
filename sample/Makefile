@@ -1,4 +1,4 @@
-MODEL = hybrid_SR
+MODEL = chaotic_SR
 SOURCE = ../source
 
 CXX := g++-8
