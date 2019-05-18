@@ -1,4 +1,4 @@
-MODEL = hilltop_SR
+MODEL = hybrid_SR
 SOURCE = ../source
 
 CXX := g++-8
