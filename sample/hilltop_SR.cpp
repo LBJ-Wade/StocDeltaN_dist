@@ -1,38 +1,52 @@
 #include "../source/StocDeltaN.hpp"
 #include <sys/time.h>
 
-#define MODEL "hilltop_SR"
+#define MODEL "hilltop_SR" // model name
 
+// ---------- box size & step h ------------
 #define XMIN -21
 #define XMAX 21
 #define HMIN (1e-8)
 #define HOV (1./20)
+// -----------------------------------------
 
-#define MAXSTEP 100000000
-#define TOL 1e-10
+// ---------- for PDE ----------------------
+#define MAXSTEP 100000000 // max recursion
+#define TOL 1e-10 // tolerance
+// -----------------------------------------
 
+// ---------- potential parameter ----------
 #define LAMBDA 0.01
 #define MU 20
+// -----------------------------------------
 
-#define RHOC (LAMBDA*LAMBDA*LAMBDA*LAMBDA*(sqrt(1+2*MU*MU)-1)/MU/MU)
+#define RHOC (LAMBDA*LAMBDA*LAMBDA*LAMBDA*(sqrt(1+2*MU*MU)-1)/MU/MU) // end of inflation
 
-#define RECURSION 100
-#define XIN (1e-6)
-#define TIMESTEP (1e-1)
+// ---------- for SDE ----------------------
+#define RECURSION 100 // recursion for power spectrum
+#define XIN (1e-6) // i.c. for phi
+#define TIMESTEP (1e-1) // time step : delta N
+// -----------------------------------------
 
-#define DELTAN 10
-#define NMAX 2800
+// ---------- for power spectrum -----------
+#define DELTAN 10 // calc. PS every DELTAN e-folds
+#define NMAX 2800 // calc. PS for 0--NMAX e-folds
+// -----------------------------------------
 
 
 int main(int argc, char** argv)
 {
+  // ---------- start stop watch ----------
   struct timeval tv;
   struct timezone tz;
   double before, after;
   
   gettimeofday(&tv, &tz);
-  before = (double)tv.tv_sec + (double)tv.tv_usec * 1.e-6; // start stop watch
+  before = (double)tv.tv_sec + (double)tv.tv_usec * 1.e-6;
+  // --------------------------------------
 
+
+  // ---------- set box ---------------
   double h, sitev = XMIN;
   vector<double> site;
   vector< vector<double> > xsite;
@@ -45,58 +59,59 @@ int main(int argc, char** argv)
   }
   xsite.push_back(site);
   sitepack.push_back(xsite);
+  // ----------------------------------
 
-  vector<double> params = {MAXSTEP,TOL,2,RHOC,(double)sitepack[0].size(),
-			   TIMESTEP,NMAX,DELTAN,RECURSION};
+  vector<double> params = {MAXSTEP,TOL,2,RHOC,(double)sitepack[0].size(),TIMESTEP,NMAX,DELTAN,RECURSION}; // set parameters
 
-  vector< vector<double> > xpi = {{XIN}};
+  vector< vector<double> > xpi = {{XIN}}; // set i.c. for inflationary trajectories
 
-  StocDeltaN sdn(MODEL,sitepack,xpi,0,params);
+  StocDeltaN sdn(MODEL,sitepack,xpi,0,params); // declare the system
   
-  //sdn.sample();
-  //sdn.sample_logplot();
+  sdn.sample(); // obtain 1 sample path
+  //sdn.sample_logplot(); // plot obtained sample path
   
-  sdn.solve();
-  sdn.f_loglinearplot(0);
-  sdn.f_loglinearplot(1);
-  sdn.calP_plot();
+  //sdn.solve(); // solve PDE & SDE to obtain power spectrum
+  //sdn.f_loglinearplot(0); // show plot of <N>
+  //sdn.f_loglinearplot(1); // show plot of <delta N^2>
+  //sdn.calP_plot(); // show plot of power spectrum of zeta
   
 
+  // ---------- stop stop watch ----------
   gettimeofday(&tv, &tz);
   after = (double)tv.tv_sec + (double)tv.tv_usec * 1.e-6;
   cout << after - before << " sec." << endl;
+  // -------------------------------------
 }
 
 
-// ------------------- user decision -----------------------
-// ---------------------------------------------------------
+// ---------- Lagrangian params. X[0]=phi ----------
 
 double StocDeltaN::V(vector<double> &X)
 {
   return LAMBDA*LAMBDA*LAMBDA*LAMBDA*(1-X[0]*X[0]/MU/MU);
 }
 
-double StocDeltaN::VI(vector<double> &X, int I)
+double StocDeltaN::VI(vector<double> &X, int I) // \partial_I V
 {
   return -2*X[0]*LAMBDA*LAMBDA*LAMBDA*LAMBDA/MU/MU;
 }
 
-double StocDeltaN::metric(vector<double> &X, int I, int J)
+double StocDeltaN::metric(vector<double> &X, int I, int J) // G_IJ
 {
   return 1;
 }
 
-double StocDeltaN::inversemetric(vector<double> &X, int I, int J)
+double StocDeltaN::inversemetric(vector<double> &X, int I, int J) // G^IJ
 {
   return 1;
 }
 
-double StocDeltaN::affine(vector<double> &X, int I, int J, int K)
+double StocDeltaN::affine(vector<double> &X, int I, int J, int K) // \Gamma^I_JK
 {
   return 0;
 }
 
-double StocDeltaN::derGamma(vector<double> &X, int I, int J, int K, int L)
+double StocDeltaN::derGamma(vector<double> &X, int I, int J, int K, int L) // \partial_L \Gamma^I_JK
 {
   return 0;
 }

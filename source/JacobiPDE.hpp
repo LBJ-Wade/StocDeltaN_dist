@@ -1,3 +1,5 @@
+// partial differential equation solver with use of Jacobi method
+
 #ifndef INCLUDED_JacobiPDE_hpp_
 #define INCLUDED_JacobiPDE_hpp_
 
@@ -44,26 +46,32 @@ public:
   JacobiPDE(){}
   // Params[0] = maxstep, Params[1] = tol, Params[2] = funcNo, Params[3] = rhoc
   JacobiPDE(vector< vector< vector<double> > > &Site, vector<double> &Params);
-  double PDE_1step(int num, int func);
-  void PDE_solve(int func);
+  double PDE_1step(int num, int func); // proceed Jacobi method 1 step
+  void PDE_solve(int func); // solve PDE
   int Ind2No(vector< vector<int> > &index); // index set to site number
   int No2Ind(int num, int xp, int I); // site number to index of xpI
   double No2PSV(int num, int xp, int I); // site number to phase-space value of xpI
-  int ceilXP(int xp, int I, vector< vector<double> > &psv);
-  double Interpolation_f(vector< vector<double> > &psv, int func);
-  void export_fg(string filename);
+  int ceilXP(int xp, int I, vector< vector<double> > &psv); // nearest larger site for some phase-space value psv
+  double Interpolation_f(vector< vector<double> > &psv, int func); // interpolation of Mn or Cn
+  void export_fg(string filename); // export Mn and Cn to data file
+  
   virtual double H(vector<double> &X, vector<double> &P);
   virtual double V(vector<double> &X);
   virtual double VI(vector<double> &X, int I);
   virtual double metric(vector<double> &X, int I, int J);
   virtual double inversemetric(vector<double> &X, int I, int J);
   virtual double affine(vector<double> &X, int I, int J, int K);
-  virtual double derGamma(vector<double> &X, int I, int J, int K, int L); // Gamma^I_{JK,L}
+  virtual double derGamma(vector<double> &X, int I, int J, int K, int L);
+
+  // -------------------------------------------------
+  // solve DI \partial_{xp,I}u + 1./2 DIJ \partail_{xp1,I}\partial_{xp2,J}u = CC
   virtual double DI(int xp, int I, vector< vector<double> > &psv);
   virtual double DIJ(int xpI, int I, int xpJ, int J, vector< vector<double> > &psv);
   virtual double CC(int num, vector< vector<double> > &psv, int func);
-  virtual void BoundaryCondition();
-  virtual bool EndSurface(vector< vector<double> > &psv);
+  // -------------------------------------------------
+  
+  virtual void BoundaryCondition(); // set boundary condition
+  virtual bool EndSurface(vector< vector<double> > &psv); // set the end of inflation condition
 };
 
 #endif
