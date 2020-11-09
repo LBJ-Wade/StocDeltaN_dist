@@ -3,7 +3,7 @@
 // ------------------- user decision -----------------------
 // ---------------------------------------------------------
 
-double JacobiPDE::H(vector<double> &X, vector<double> &P)
+double JacobiPDE::H(vector<double> &X, vector<double> &P) // Hubble parameter
 {
   double rho = V(X);
 
@@ -16,7 +16,7 @@ double JacobiPDE::H(vector<double> &X, vector<double> &P)
   return sqrt(rho/3.);
 }
 
-double JacobiPDE::V(vector<double> &X)
+double JacobiPDE::V(vector<double> &X) // potential
 {
   double m1 = 0.01;
   double m2 = 0.1;
@@ -24,7 +24,7 @@ double JacobiPDE::V(vector<double> &X)
   return 1./2*m1*m1*X[0]*X[0] + 1./2*m2*m2*X[1]*X[1];
 }
 
-double JacobiPDE::VI(vector<double> &X, int I)
+double JacobiPDE::VI(vector<double> &X, int I) // \partial_I V
 {
   double m1 = 0.01;
   double m2 = 0.1;
@@ -36,7 +36,7 @@ double JacobiPDE::VI(vector<double> &X, int I)
   }
 }
 
-double JacobiPDE::metric(vector<double> &X, int I, int J)
+double JacobiPDE::metric(vector<double> &X, int I, int J) // field-space metric G_IJ
 {
   double MM = 1e-3;
 
@@ -49,7 +49,7 @@ double JacobiPDE::metric(vector<double> &X, int I, int J)
   }
 }
 
-double JacobiPDE::inversemetric(vector<double> &X, int I, int J)
+double JacobiPDE::inversemetric(vector<double> &X, int I, int J) // inverse field-space metric G^IJ
 {
   double MM = 1e-3;
 
@@ -62,7 +62,7 @@ double JacobiPDE::inversemetric(vector<double> &X, int I, int J)
   }
 }
 
-double JacobiPDE::affine(vector<double> &X, int I, int J, int K)
+double JacobiPDE::affine(vector<double> &X, int I, int J, int K) // Christoffesl symbol Gamma^I_JK
 {
   double MM = 1e-3;
 
@@ -75,7 +75,7 @@ double JacobiPDE::affine(vector<double> &X, int I, int J, int K)
   }
 }
 
-double JacobiPDE::derGamma(vector<double> &X, int I, int J, int K, int L)
+double JacobiPDE::derGamma(vector<double> &X, int I, int J, int K, int L) // Gamma^I_{JK,L}
 {
   double MM = 1e-3;
 
@@ -101,7 +101,7 @@ double JacobiPDE::DI(int xp, int I, vector< vector<double> > &psv)
 {
   double DI = 0;
 
-  if (xpdim == 1) {
+  if (xpdim == 1) { // slow-roll field-space
     for (int J=0; J<Idim; J++) {
       DI -= inversemetric(psv[0],I,J)*VI(psv[0],J)/V(psv[0]);
 
@@ -109,7 +109,7 @@ double JacobiPDE::DI(int xp, int I, vector< vector<double> > &psv)
 	DI -= 1./2*affine(psv[0],I,J,K)*DIJ(0,J,0,K,psv);
       }
     }
-  } else if (xpdim == 2) {
+  } else if (xpdim == 2) { // full phase-space
     if (xp == 0) {
       DI = 0;
       
@@ -150,10 +150,10 @@ double JacobiPDE::DIJ(int xpI, int I, int xpJ, int J, vector< vector<double> > &
 {
   double DDIJ;
   
-  if (xpdim == 1) {
+  if (xpdim == 1) { // slow-roll field-space
     DDIJ = V(psv[0])/12./M_PI/M_PI * inversemetric(psv[0],I,J);
-  } else if (xpdim == 2) {
-    if (xpI == 0 && xpJ == 0) {
+  } else if (xpdim == 2) { // full phase-space
+    if (xpI == 0 && xpJ == 0) { 
       DDIJ = H(psv[0],psv[1])*H(psv[0],psv[1])/4./M_PI/M_PI * inversemetric(psv[0],I,J);
     } else if (xpI == 1 && xpJ == 1) {
       DDIJ = 0;
@@ -187,17 +187,17 @@ double JacobiPDE::CC(int num, vector< vector<double> > &psv, int func)
 {
   double CC = 0;
   
-  if (func == 0) {
+  if (func == 0) { // for <N>
     CC = -1;
-  } else if (func == 1) {
+  } else if (func == 1) { // for <delta N^2>
     for (int xpI=0; xpI<xpdim; xpI++) {
       for (int I=0; I<Idim; I++) {
 	for (int xpJ=0; xpJ<xpdim; xpJ++) {
 	  for (int J=0; J<Idim; J++) {
 	    CC -= DIJ(xpI,I,xpJ,J,psv)
-	      *(ff[0][num_p[num][xpI][I]] - ff[0][num_m[num][xpI][I]])
-	      *(ff[0][num_p[num][xpJ][J]] - ff[0][num_m[num][xpJ][J]])
-	      /(hp[num][xpI][I]+hm[num][xpI][I])/(hp[num][xpJ][J]+hm[num][xpJ][J]);
+	      *(ff[0][(*num_p)[num][xpI][I]] - ff[0][(*num_m)[num][xpI][I]])
+	      *(ff[0][(*num_p)[num][xpJ][J]] - ff[0][(*num_m)[num][xpJ][J]])
+	      /((*hp)[num][xpI][I]+(*hm)[num][xpI][I])/((*hp)[num][xpJ][J]+(*hm)[num][xpJ][J]);
 	  }
 	}
       }
@@ -208,29 +208,29 @@ double JacobiPDE::CC(int num, vector< vector<double> > &psv, int func)
 }
 // ---------------------------------------------------------
 
-void JacobiPDE::BoundaryCondition()
+void JacobiPDE::BoundaryCondition() // set boundary condition
 {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
   for (int number=0; number<volume; number++) {
-    vector< vector<double> > PSV0(xpdim, vector<double>(Idim,0));
+    vector< vector<double> > PSV0(xpdim, vector<double>(Idim,0)); // temporal variable for phase-space value
 
     for (int xp=0; xp<xpdim; xp++) {
       for (int I=0; I<Idim; I++) {
-	PSV0[xp][I] = No2PSV(number,xp,I);
+	PSV0[xp][I] = No2PSV(number,xp,I); // extract phase-space value of site[number]
       }
     }
     
-    if (EndSurface(PSV0)) {
-      Omega[number] = true;
+    if (EndSurface(PSV0)) { // if the site is in inflationary region
+      Omega[number] = true; // to be solved
       for (int func=0; func<funcNo; func++) {
-	ff[func][number] = rand()%1;
+	ff[func][number] = rand()%1; // set IC for function f randomly
       }
     } else {
-      Omega[number] = false;
+      Omega[number] = false; // no to be solved
       for (int func=0; func<funcNo; func++) {
-	ff[func][number] = 0;
+	ff[func][number] = 0; // Set f to be 0. Particularly f should be 0 on the end of inflation hypersurface
       }
     }
     
@@ -251,22 +251,22 @@ void JacobiPDE::BoundaryCondition()
 	
 	if (index[xp][I] == 0) {
 	  ind_m[xp][I]++;
-	  hm[number][xp][I] = hI[xp][I][index[xp][I]];
+	  (*hm)[number][xp][I] = (*hI)[xp][I][index[xp][I]];
 	} else {
 	  ind_m[xp][I]--;
-	  hm[number][xp][I] = hI[xp][I][index[xp][I]-1];
+	  (*hm)[number][xp][I] = (*hI)[xp][I][index[xp][I]-1];
 	}
 
-	if (index[xp][I] == siteNo[xp][I]-1) {
+	if (index[xp][I] == (*siteNo)[xp][I]-1) {
 	  ind_p[xp][I]--;
-	  hp[number][xp][I] = hI[xp][I][index[xp][I]-1];
+	  (*hp)[number][xp][I] = (*hI)[xp][I][index[xp][I]-1];
 	} else {
 	  ind_p[xp][I]++;
-	  hp[number][xp][I] = hI[xp][I][index[xp][I]];
+	  (*hp)[number][xp][I] = (*hI)[xp][I][index[xp][I]];
 	}
 
-	num_m[number][xp][I] = Ind2No(ind_m);
-	num_p[number][xp][I] = Ind2No(ind_p);
+	(*num_m)[number][xp][I] = Ind2No(ind_m);
+	(*num_p)[number][xp][I] = Ind2No(ind_p);
 
 	
 	for (int xptemp=0; xptemp<xpdim; xptemp++) {
@@ -282,7 +282,7 @@ void JacobiPDE::BoundaryCondition()
 		ind_mm[xp][I]--;
 	      }
 
-	      if (index[xp][I] == siteNo[xp][I]-1) {
+	      if (index[xp][I] == (*siteNo)[xp][I]-1) {
 		ind_pp[xp][I]--;
 		ind_pm[xp][I]--;
 	      } else {
@@ -298,15 +298,15 @@ void JacobiPDE::BoundaryCondition()
 		ind_mm[xptemp][J]--;
 	      }
 
-	      if (index[xptemp][J] == siteNo[xptemp][J]-1) {
+	      if (index[xptemp][J] == (*siteNo)[xptemp][J]-1) {
 		ind_pp[xptemp][J]--;
 	      } else {
 		ind_pp[xptemp][J]++;
 	      }
 
-	      num_pp[number][xp][I][xptemp][J] = Ind2No(ind_pp);
-	      num_pm[number][xp][I][xptemp][J] = Ind2No(ind_pm);
-	      num_mm[number][xp][I][xptemp][J] = Ind2No(ind_mm);
+	      (*num_pp)[number][xp][I][xptemp][J] = Ind2No(ind_pp);
+	      (*num_pm)[number][xp][I][xptemp][J] = Ind2No(ind_pm);
+	      (*num_mm)[number][xp][I][xptemp][J] = Ind2No(ind_mm);
 	    }
 	  }
 	}
@@ -339,23 +339,27 @@ JacobiPDE::JacobiPDE(vector< vector< vector<double> > > &Site, vector<double> &P
   cout << "OpenMP : Enabled (Max # of threads = " << omp_get_max_threads() << ")" << endl;
 #endif
 
-  site = Site;
-  hI = Site;
+  site = new vector< vector< vector<double> > >;
+  hI = new vector< vector< vector<double> > >;
+  (*site) = Site;
+  (*hI) = Site;
+  
   maxstep = Params[0];
   tol = Params[1];
   funcNo = Params[2];
   rhoc = Params[3];
 
-  xpdim = site.size();
-  Idim = site[0].size();
+  xpdim = (*site).size();
+  Idim = (*site)[0].size();
 
-  siteNo = vector< vector<int> >(xpdim, vector<int>(Idim,0));
+  siteNo = new vector< vector<int> >;
+  (*siteNo) = vector< vector<int> >(xpdim, vector<int>(Idim,0));
   for (int xp=0; xp<xpdim; xp++) {
     for (int I=0; I<Idim; I++) {
-      siteNo[xp][I] = site[xp][I].size();
+      (*siteNo)[xp][I] = (*site)[xp][I].size();
 
-      for (int index=0; index<site[xp][I].size()-1; index++) {
-	hI[xp][I][index] = site[xp][I][index+1] - site[xp][I][index];
+      for (int index=0; index<(*site)[xp][I].size()-1; index++) {
+	(*hI)[xp][I][index] = (*site)[xp][I][index+1] - (*site)[xp][I][index];
       }
     }
   }
@@ -364,8 +368,8 @@ JacobiPDE::JacobiPDE(vector< vector< vector<double> > > &Site, vector<double> &P
   xpvol = vector<int>(xpdim,1);
   for (int xp=0; xp<xpdim; xp++) {
     for (int I=0; I<Idim; I++) {
-      volume *= siteNo[xp][I];
-      xpvol[xp] *= siteNo[xp][I];
+      volume *= (*siteNo)[xp][I];
+      xpvol[xp] *= (*siteNo)[xp][I];
     }
   }
 
@@ -381,18 +385,27 @@ JacobiPDE::JacobiPDE(vector< vector< vector<double> > > &Site, vector<double> &P
   
   Omega = vector<bool>(volume,true);
 
-  
-  num_p = vector< vector< vector<int> > >(volume, vector< vector<int> >(xpdim,
-									vector<int>(Idim,0)));
-  num_m = num_p;
-  num_pp = vector< vector< vector< vector< vector<int> > > > >(volume, vector< vector< vector< vector<int> > > >(xpdim, vector< vector< vector<int> > >(Idim, vector< vector<int> >(xpdim, vector<int>(Idim,0)))));
-  num_pm = num_pp;
-  num_mm = num_pp;
 
-  hp = vector< vector< vector<double> > >(volume,
+  num_p = new vector< vector< vector<int> > >;
+  num_m = new vector< vector< vector<int> > >;
+  num_pp = new vector< vector< vector< vector< vector<int> > > > >;
+  num_pm = new vector< vector< vector< vector< vector<int> > > > >;
+  num_mm = new vector< vector< vector< vector< vector<int> > > > >;
+  
+  (*num_p) = vector< vector< vector<int> > >(volume, vector< vector<int> >(xpdim,
+									vector<int>(Idim,0)));
+  (*num_m) = (*num_p);
+  (*num_pp) = vector< vector< vector< vector< vector<int> > > > >(volume, vector< vector< vector< vector<int> > > >(xpdim, vector< vector< vector<int> > >(Idim, vector< vector<int> >(xpdim, vector<int>(Idim,0)))));
+  (*num_pm) = (*num_pp);
+  (*num_mm) = (*num_pp);
+
+  hp = new vector< vector< vector<double> > >;
+  hm = new vector< vector< vector<double> > >;
+  
+  (*hp) = vector< vector< vector<double> > >(volume,
 					  vector< vector<double> >(xpdim,
 								   vector<double>(Idim,0)));
-  hm = hp;
+  (*hm) = (*hp);
 
   BoundaryCondition();
 }
@@ -414,25 +427,25 @@ double JacobiPDE::PDE_1step(int num, int func)
       double DItemp = DI(xp,I,PSV0);
       
       if (DItemp < 0) {
-	uu += DItemp / hm[num][xp][I] * ff[func][num_m[num][xp][I]];
-	coeff += DItemp / hm[num][xp][I];
+	uu += DItemp / (*hm)[num][xp][I] * ff[func][(*num_m)[num][xp][I]];
+	coeff += DItemp / (*hm)[num][xp][I];
       } else {
-	uu -= DItemp / hp[num][xp][I] * ff[func][num_p[num][xp][I]];
-	coeff -= DItemp / hp[num][xp][I];
+	uu -= DItemp / (*hp)[num][xp][I] * ff[func][(*num_p)[num][xp][I]];
+	coeff -= DItemp / (*hp)[num][xp][I];
       }
       
       uu -= DIJ(xp,I,xp,I,PSV0)
-	*(ff[func][num_p[num][xp][I]]*hm[num][xp][I]+ff[func][num_m[num][xp][I]]*hp[num][xp][I])
-	/hp[num][xp][I]/hm[num][xp][I]/(hp[num][xp][I]+hm[num][xp][I]);
-      coeff -= DIJ(xp,I,xp,I,PSV0)/hp[num][xp][I]/hm[num][xp][I];
+	*(ff[func][(*num_p)[num][xp][I]]*(*hm)[num][xp][I]+ff[func][(*num_m)[num][xp][I]]*(*hp)[num][xp][I])
+	/(*hp)[num][xp][I]/(*hm)[num][xp][I]/((*hp)[num][xp][I]+(*hm)[num][xp][I]);
+      coeff -= DIJ(xp,I,xp,I,PSV0)/(*hp)[num][xp][I]/(*hm)[num][xp][I];
 
       for (int xptemp=0; xptemp<xpdim; xptemp++) {
 	for (int J=0; J<Idim; J++) {
 	  if (xp!=xptemp || I!=J) {
 	    uu -= 1./2*DIJ(xp,I,xptemp,J,PSV0)
-	      *(ff[func][num_pp[num][xp][I][xptemp][J]]-ff[func][num_pm[num][xp][I][xptemp][J]]
-		-ff[func][num_pm[num][xptemp][J][xp][I]]+ff[func][num_mm[num][xp][I][xptemp][J]])
-	      /(hp[num][xp][I]+hm[num][xp][I])/(hp[num][xptemp][J]+hm[num][xptemp][J]);
+	      *(ff[func][(*num_pp)[num][xp][I][xptemp][J]]-ff[func][(*num_pm)[num][xp][I][xptemp][J]]
+		-ff[func][(*num_pm)[num][xptemp][J][xp][I]]+ff[func][(*num_mm)[num][xp][I][xptemp][J]])
+	      /((*hp)[num][xp][I]+(*hm)[num][xp][I])/((*hp)[num][xptemp][J]+(*hm)[num][xptemp][J]);
 	  }
 	}
       }
@@ -492,7 +505,7 @@ int JacobiPDE::Ind2No(vector< vector<int> > &index)
     for (int I=0; I<Idim; I++) {
       temp = index[xp][I];
       for (int J=0; J<I; J++) {
-	temp *= siteNo[xp][J];
+	temp *= (*siteNo)[xp][J];
       }
       for (int xptemp=0; xptemp<xp; xptemp++) {
 	temp *= xpvol[xptemp];
@@ -515,24 +528,24 @@ int JacobiPDE::No2Ind(int num, int xp, int I)
   index %= xpvol[xp];
 
   for (int J=0; J<I; J++) {
-    index /= siteNo[xp][J];
+    index /= (*siteNo)[xp][J];
   }
 
-  index %= siteNo[xp][I];
+  index %= (*siteNo)[xp][I];
 
   return index;
 }
 
 double JacobiPDE::No2PSV(int num, int xp, int I)
 {
-  return site[xp][I][No2Ind(num,xp,I)];
+  return (*site)[xp][I][No2Ind(num,xp,I)];
 }
 
 int JacobiPDE::ceilXP(int xp, int I, vector< vector<double> > &psv)
 {
   int index = 0;
 
-  while (site[xp][I][index] <= psv[xp][I]) {
+  while ((*site)[xp][I][index] <= psv[xp][I]) {
     index++;
   }
 
@@ -564,10 +577,10 @@ double JacobiPDE::Interpolation_f(vector< vector<double> > &psv, int func)
 
 	if (pmcheck == 1) {
 	  index[xp][I] = ceilXP(xp,I,psv);
-	  weight *= (psv[xp][I]-site[xp][I][ceilXP(xp,I,psv)-1])/hI[xp][I][ceilXP(xp,I,psv)-1];
+	  weight *= (psv[xp][I]-(*site)[xp][I][ceilXP(xp,I,psv)-1])/(*hI)[xp][I][ceilXP(xp,I,psv)-1];
 	} else {
 	  index[xp][I] = ceilXP(xp,I,psv)-1;
-	  weight *= (site[xp][I][ceilXP(xp,I,psv)]-psv[xp][I])/hI[xp][I][ceilXP(xp,I,psv)-1];
+	  weight *= ((*site)[xp][I][ceilXP(xp,I,psv)]-psv[xp][I])/(*hI)[xp][I][ceilXP(xp,I,psv)-1];
 	}
       }
     }
@@ -595,3 +608,4 @@ void JacobiPDE::export_fg(string filename)
     ofs << endl;
   }
 }
+

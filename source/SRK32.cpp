@@ -343,6 +343,18 @@ void SRKintegrater::coeff(double dt, int step)
   }
 }
 
+void SRKintegrater::init_txp()
+{
+  t = t0;
+  xx = xxi;
+}
+
+void SRKintegrater::set_txp(double T, vector< vector<double> > &PSV)
+{
+  t = T;
+  xx = PSV;
+}
+
 double SRKintegrater::e1(vector<double> &X, vector<double> &P)
 {
   double e1 = 0;

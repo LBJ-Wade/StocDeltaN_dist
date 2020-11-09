@@ -12,16 +12,149 @@ StocDeltaN::StocDeltaN(string Model, vector< vector< vector<double> > > &Site,
   recursion = Params[8];
   xpdim = JacobiPDE::xpdim;
   Idim = JacobiPDE::Idim;
+  //BoundaryCondition(Params[9]);
   BoundaryCondition();
 
   cout << "model : " << model << endl;
 }
 
-void StocDeltaN::init_txp()
+/*
+void StocDeltaN::BoundaryCondition(double Ncut)
 {
-  t = t0;
-  xx = xxi;
+  double setnum = 0;
+  
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (int number=0; number<volume; number++) {
+    vector< vector<double> > PSV0(xpdim, vector<double>(Idim,0));
+
+    for (int xp=0; xp<xpdim; xp++) {
+      for (int I=0; I<Idim; I++) {
+	PSV0[xp][I] = No2PSV(number,xp,I);
+      }
+    }
+    
+    if (EndSurface(PSV0)) {
+      Omega[number] = true;
+      for (int func=0; func<funcNo; func++) {
+	if (func==0) {
+	  StocDeltaN ssdn = *this;
+	  ssdn.set_txp(0,PSV0);
+
+	  while (EndSurface(ssdn.xx)) {
+	    ssdn.SRK2(timestep);
+
+	    if (ssdn.return_t() > Ncut) {
+	      Omega[number] = false;
+	      break;
+	    }
+	  }
+
+	  if (Omega[number]) {
+	    ff[func][number] = ssdn.return_t();
+	  } else {
+	    ff[func][number] = 0;
+	  }
+	} else {
+	  ff[func][number] = rand()%1;
+	}
+      }
+    } else {
+      Omega[number] = false;
+      for (int func=0; func<funcNo; func++) {
+	ff[func][number] = 0;
+      }
+    }
+    
+    
+    vector< vector<int> > index(xpdim, vector<int>(Idim,0));
+    vector< vector<int> > ind_p, ind_m, ind_pp, ind_pm, ind_mm;
+
+    for (int xp=0; xp<xpdim; xp++) {
+      for (int I=0; I<Idim; I++) {
+	index[xp][I] = No2Ind(number,xp,I);
+      }
+    }
+
+    for (int xp=0; xp<xpdim; xp++) {
+      for (int I=0; I<Idim; I++) {
+	ind_p = index;
+	ind_m = index;
+	
+	if (index[xp][I] == 0) {
+	  ind_m[xp][I]++;
+	  (*hm)[number][xp][I] = (*hI)[xp][I][index[xp][I]];
+	} else {
+	  ind_m[xp][I]--;
+	  (*hm)[number][xp][I] = (*hI)[xp][I][index[xp][I]-1];
+	}
+
+	if (index[xp][I] == (*siteNo)[xp][I]-1) {
+	  ind_p[xp][I]--;
+	  (*hp)[number][xp][I] = (*hI)[xp][I][index[xp][I]-1];
+	} else {
+	  ind_p[xp][I]++;
+	  (*hp)[number][xp][I] = (*hI)[xp][I][index[xp][I]];
+	}
+
+	(*num_m)[number][xp][I] = Ind2No(ind_m);
+	(*num_p)[number][xp][I] = Ind2No(ind_p);
+
+	
+	for (int xptemp=0; xptemp<xpdim; xptemp++) {
+	  for (int J=0; J<Idim; J++) {
+	    if (xp!=xptemp || I!=J) {
+	      ind_pp = index;
+	      ind_pm = index;
+	      ind_mm = index;
+	      
+	      if (index[xp][I] == 0) {
+		ind_mm[xp][I]++;
+	      } else {
+		ind_mm[xp][I]--;
+	      }
+
+	      if (index[xp][I] == (*siteNo)[xp][I]-1) {
+		ind_pp[xp][I]--;
+		ind_pm[xp][I]--;
+	      } else {
+		ind_pp[xp][I]++;
+		ind_pm[xp][I]++;
+	      }
+
+	      if (index[xptemp][J] == 0) {
+		ind_pm[xptemp][J]++;
+		ind_mm[xptemp][J]++;
+	      } else {
+		ind_pm[xptemp][J]--;
+		ind_mm[xptemp][J]--;
+	      }
+
+	      if (index[xptemp][J] == (*siteNo)[xptemp][J]-1) {
+		ind_pp[xptemp][J]--;
+	      } else {
+		ind_pp[xptemp][J]++;
+	      }
+
+	      (*num_pp)[number][xp][I][xptemp][J] = Ind2No(ind_pp);
+	      (*num_pm)[number][xp][I][xptemp][J] = Ind2No(ind_pm);
+	      (*num_mm)[number][xp][I][xptemp][J] = Ind2No(ind_mm);
+	    }
+	  }
+	}
+      }
+    }
+
+#pragma omp critical
+    {
+      setnum++;
+      cout << "\rBox initializing... " << (int)(setnum/volume*100) << "%" << flush;
+    }
+  }
+  cout << endl;
 }
+*/
 
 void StocDeltaN::solve()
 {
@@ -104,7 +237,7 @@ void StocDeltaN::solve()
       }
 
       if (!EndSurface(PSV0)) {
-	  break;
+	break;
       }
     }
 
@@ -196,9 +329,12 @@ void StocDeltaN::sample()
     }
     ofs << setprecision(17);
     if (xpdim == 1) {
-      ofs << return_V();
+      ofs << return_V() << ' ';
     } else if (xpdim == 2) {
-      ofs << return_H();
+      ofs << return_H() << ' ';
+    }
+    if (Idim == 2) {
+      ofs << return_etaperp();
     }
     ofs << endl;
 
@@ -480,16 +616,16 @@ void StocDeltaN::f_plot(int func)
 	g.ylabel(string("$<\\delta N^2>$"));
 	g.ylog();
       }
-      g.plot(site[0][0],ff[func],1,string("b"));
+      g.plot((*site)[0][0],ff[func],1,string("b"));
       g.save(filename);
       g.show();
     } else if (Idim == 2) {
       g.xlabel(string("$\\phi^1$"));
       g.ylabel(string("$\\phi^2$"));
       if (func == 0) {
-	g.contourf(site[0][0],site[0][1],ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],site[0][1],ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1traj,x2traj,3,string("r"));
       g.save(filename);
@@ -500,9 +636,9 @@ void StocDeltaN::f_plot(int func)
       g.xlabel(string("$\\phi$"));
       g.ylabel(string("$\\pi$"));
       if (func == 0) {
-	g.contourf(site[0][0],site[1][0],ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],(*site)[1][0],ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],site[1][0],ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],(*site)[1][0],ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1traj,p1traj,3,string("r"));
       g.save(filename);
@@ -534,9 +670,9 @@ void StocDeltaN::f_logplot(int func)
       g.ylabel(string("$|\\phi^2|$"));
       g.ylog();
       if (func == 0) {
-	g.contourf(site[0][0],site[0][1],ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],site[0][1],ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1traj,x2abs,3,string("r"));
       g.save(filename);
@@ -548,7 +684,7 @@ void StocDeltaN::f_logplot(int func)
       for (auto& p1 : p1traj) {
 	p1abs.push_back(fabs(p1));
       }
-      for (auto& p1site : site[1][0]) {
+      for (auto& p1site : (*site)[1][0]) {
 	p1siteabs.push_back(fabs(p1site));
       }
       
@@ -556,9 +692,9 @@ void StocDeltaN::f_logplot(int func)
       g.ylabel(string("$|\\pi|$"));
       g.ylog();
       if (func == 0) {
-	g.contourf(site[0][0],p1siteabs,ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],p1siteabs,ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],p1siteabs,ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],p1siteabs,ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1traj,p1abs,3,string("r"));
       g.save(filename);
@@ -589,7 +725,7 @@ void StocDeltaN::f_loglinearplot(int func)
 	g.ylog();
       }
       g.xlog();
-      g.plot(site[0][0],ff[func],1,string("b"));
+      g.plot((*site)[0][0],ff[func],1,string("b"));
       g.save(filename);
       g.show();
     } else if (Idim == 2) {
@@ -602,9 +738,9 @@ void StocDeltaN::f_loglinearplot(int func)
       g.ylabel(string("$\\phi^2$"));
       g.xlog();
       if (func == 0) {
-	g.contourf(site[0][0],site[0][1],ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],site[0][1],ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1abs,x2traj,3,string("r"));
       g.save(filename);
@@ -621,9 +757,9 @@ void StocDeltaN::f_loglinearplot(int func)
       g.ylabel(string("$\\pi$"));
       g.xlog();
       if (func == 0) {
-	g.contourf(site[0][0],site[1][0],ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],(*site)[1][0],ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],site[1][0],ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],(*site)[1][0],ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1abs,p1traj,3,string("r"));
       g.save(filename);
@@ -657,9 +793,9 @@ void StocDeltaN::f_loglogplot(int func)
       g.xlog();
       g.ylog();
       if (func == 0) {
-	g.contourf(site[0][0],site[0][1],ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],site[0][1],ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],(*site)[0][1],ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1abs,x2abs,3,string("r"));
       g.save(filename);
@@ -672,7 +808,7 @@ void StocDeltaN::f_loglogplot(int func)
 	x1abs.push_back(fabs(x1traj[i]));
 	p1abs.push_back(fabs(p1traj[i]));
       }
-      for (auto& p1site : site[1][0]) {
+      for (auto& p1site : (*site)[1][0]) {
 	p1siteabs.push_back(fabs(p1site));
       }
       
@@ -681,9 +817,9 @@ void StocDeltaN::f_loglogplot(int func)
       g.xlog();
       g.ylog();
       if (func == 0) {
-	g.contourf(site[0][0],p1siteabs,ff[func],string("$<N>$"));
+	g.contourf((*site)[0][0],p1siteabs,ff[func],string("$<N>$"));
       } else if (func == 1) {
-	g.log_contourf(site[0][0],p1siteabs,ff[func],string("$<\\delta N^2>$"));
+	g.log_contourf((*site)[0][0],p1siteabs,ff[func],string("$<\\delta N^2>$"));
       }
       g.plot(x1abs,p1abs,3,string("r"));
       g.save(filename);
@@ -711,3 +847,4 @@ double StocDeltaN::return_intf(int func)
 {
   return Interpolation_f(xx,func);
 }
+
