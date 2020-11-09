@@ -87,13 +87,13 @@ int main(int argc, char** argv)
   
   StocDeltaN sdn(MODEL,sitepack,xpi,0,params); // declare the system
   
-  sdn.sample(); // obtain 1 sample path
+  //sdn.sample(); // obtain 1 sample path
   //sdn.sample_logplot(); // plot obtained sample path
   
-  //sdn.solve(); // solve PDE & SDE to obtain power spectrum
-  //sdn.f_logplot(0); // show plot of <N>
-  //sdn.f_logplot(1); // show plot of <delta N^2>
-  //sdn.calP_plot(); // show plot of power spectrum of zeta
+  sdn.solve(); // solve PDE & SDE to obtain power spectrum
+  sdn.f_logplot(0); // show plot of <N>
+  sdn.f_logplot(1); // show plot of <delta N^2>
+  sdn.calP_plot(); // show plot of power spectrum of zeta
 
 
   // ---------- stop stop watch ----------
